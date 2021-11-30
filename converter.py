@@ -45,7 +45,7 @@ while cap.isOpened():
 
     height, width, channels = frame.shape
 
-    c_converter.convert_and_print(frame.data, width, height)
+    c_converter.convert_and_print(bytes(frame.data), width, height)
     #print('\033[H\033[J', end='')
     #print_frame(frame, width, height)
     

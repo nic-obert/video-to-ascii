@@ -9,14 +9,9 @@ const unsigned char MAX_CHANNEL_INTENSITY = 255;
 const unsigned short MAX_CHANNEL_VALUES = MAX_CHANNEL_INTENSITY * 3; // 3 is the number of channels of a Pixel
 
 
-typedef struct Pixel {
-    unsigned char red;
-    unsigned char green;
-    unsigned char blue;
-} Pixel;
+typedef unsigned char Pixel[3];
 
-
-typedef Pixel** Frame;
+typedef Pixel* Frame;
     
 
 
@@ -27,7 +22,7 @@ char mapIntensityToCharacter(float intensity) {
 
 float getPixelIntensity(Pixel pixel) {
     unsigned short intensity = 0;
-    intensity += pixel.red + pixel.green + pixel.blue;
+    intensity += pixel[0] + pixel[1] + pixel[2];
     return intensity / MAX_CHANNEL_VALUES;
 }
 
@@ -35,20 +30,21 @@ float getPixelIntensity(Pixel pixel) {
 void printFrame(Frame frame, unsigned short width, unsigned short height) {
     char string[height * width + height];
     for (unsigned short y = 0; y < height; y++) {
+        unsigned int basePosition = y * width;
         for (unsigned short x = 0; x < width; x++) {
-            string[y * width + x] = mapIntensityToCharacter(getPixelIntensity(frame[y][x]));
+            string[basePosition + x] = mapIntensityToCharacter(getPixelIntensity(frame[basePosition + x]));
         }
-        string[y * width + width] = '\n';
+        string[basePosition + width] = '\n';
     }
     printf(string);
 }
 
 PyObject* convert_and_print(PyObject* self, PyObject* args)
 {
-    Frame frame;
+    PyBytesObject* frame;
     unsigned short width;
     unsigned short height;
-    PyArg_ParseTuple(args, "oHH", &frame, &width, &height);
+    PyArg_ParseTuple(args, "SHH", &frame, &width, &height);
 
     printf("\033[H\033[J");
     printFrame(frame, width, height);
