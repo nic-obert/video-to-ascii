@@ -2,6 +2,8 @@
 from typing import List, NewType, Tuple
 import cv2
 
+import c_converter
+
 
 Pixel = NewType('Pixel', Tuple[int, int, int])
 Frame = NewType('Frame', Tuple[List, List, Pixel])
@@ -20,13 +22,15 @@ def get_pixel_intensity(pixel: Pixel) -> float:
 
 
 def print_frame(frame: Frame, width: int, height: int) -> None:
+    string = ''
     for y in range(height):
         for x in range(width):
             pixel = Pixel((frame[y,x,0], frame[y,x,1], frame[y,x,2]))
             intensity = get_pixel_intensity(pixel)
             character = map_intensity_to_character(intensity)
-            print(character, end='')
-        print()
+            string += character
+        string += '\n'
+    print(string)
 
 
 cap = cv2.VideoCapture('video.mp4')
@@ -41,9 +45,10 @@ while cap.isOpened():
 
     height, width, channels = frame.shape
 
-    print_frame(frame, width, height)
+    c_converter.convert_and_print(frame.data, width, height)
+    #print('\033[H\033[J', end='')
+    #print_frame(frame, width, height)
     
-
 
 cap.release()
 cv2.destroyAllWindows()
