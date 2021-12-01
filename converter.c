@@ -1,5 +1,6 @@
 #define PY_SSIZE_T_CLEAN
 #include <Python.h>
+#include <stdio.h>
 
 
 #define CHARACTERS_NUMBER 8
@@ -9,7 +10,7 @@ const unsigned char MAX_CHANNEL_INTENSITY = 255;
 const unsigned short MAX_CHANNEL_VALUES = MAX_CHANNEL_INTENSITY * 3; // 3 is the number of channels of a Pixel
 
 
-typedef unsigned char Pixel[3];
+typedef unsigned char* Pixel;
 
 typedef Pixel* Frame;
     
@@ -28,26 +29,35 @@ float getPixelIntensity(Pixel pixel) {
 
 
 void printFrame(Frame frame, unsigned short width, unsigned short height) {
-    char string[height * width + height];
+    printf("printFrame() frame=%d width=%d height=%d\n", frame, width, height);
+    char string[height * width + height + 1];
     for (unsigned short y = 0; y < height; y++) {
         unsigned int basePosition = y * width;
+        printf("%d: %d", y, basePosition);
+        fflush(stdout);
         for (unsigned short x = 0; x < width; x++) {
-            string[basePosition + x] = mapIntensityToCharacter(getPixelIntensity(frame[basePosition + x]));
+            Pixel pixel = (Pixel) frame[basePosition + x];
+            float intensity = getPixelIntensity(pixel);
+            char character = mapIntensityToCharacter(intensity);
+            //string[basePosition + x] = character;
+            //string[basePosition + x + 1] = '\0';
+            printf("%s %f %c", string, intensity, character);
         }
         string[basePosition + width] = '\n';
     }
-    printf(string);
+    string[height * width + height] = '\0';
+    printf("%s", string);
 }
 
 PyObject* convert_and_print(PyObject* self, PyObject* args)
 {
-    PyBytesObject* frame;
+    Frame frame;
     unsigned short width;
     unsigned short height;
-    PyArg_ParseTuple(args, "SHH", &frame, &width, &height);
+    PyArg_ParseTuple(args, "nHH", &frame, &width, &height);
 
-    printf("\033[H\033[J");
-    printFrame(frame, width, height);
+    //printf("\033[H\033[J");
+    printFrame((Frame) frame, width, height);
 
     return Py_None;
 }
