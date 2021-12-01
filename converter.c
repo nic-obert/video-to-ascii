@@ -36,6 +36,8 @@ void printFrame(Frame frame, unsigned short width, unsigned short height) {
         printf("%d: %d", y, basePosition);
         fflush(stdout);
         for (unsigned short x = 0; x < width; x++) {
+            printf("getting frame\n");
+            fflush(stdout);
             Pixel pixel = (Pixel) frame[basePosition + x];
             float intensity = getPixelIntensity(pixel);
             char character = mapIntensityToCharacter(intensity);

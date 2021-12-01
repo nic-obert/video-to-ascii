@@ -1,6 +1,7 @@
 #!/usr/bin/env python3
 from typing import List, NewType, Tuple
 import cv2
+import ctypes
 
 import c_converter
 
@@ -45,7 +46,8 @@ while cap.isOpened():
 
     height, width, channels = frame.shape
 
-    c_converter.convert_and_print(frame.ctypes.data, width, height)
+    pointer = ctypes.c_void_p(frame.ctypes.data)
+    c_converter.convert_and_print(pointer, width, height)
     #print('\033[H\033[J', end='')
     #print_frame(frame, width, height)
     
