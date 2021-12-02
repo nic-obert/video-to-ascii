@@ -4,7 +4,7 @@
 
 
 #define CHARACTERS_NUMBER 8
-const short CHARACTERS[CHARACTERS_NUMBER] = {' ', '.', '-', '*', 'o', 'O', '#', '@'};
+const char* CHARACTERS[CHARACTERS_NUMBER] = {" ", ".", "-", "*", "o", "O", "#", "@"};
 
 const unsigned char MAX_CHANNEL_INTENSITY = 255;
 const unsigned short MAX_CHANNEL_VALUES = MAX_CHANNEL_INTENSITY * 3; // 3 is the number of channels of a Pixel
@@ -14,6 +14,15 @@ typedef unsigned char* Pixel;
 
 typedef Pixel* Frame;
     
+
+PyObject* map_intensity_to_character(PyObject* self, PyObject* args)
+{
+    float intensity;
+    if (!PyArg_ParseTuple(args, "f", &intensity))
+        return NULL;
+
+    return Py_BuildValue("s", CHARACTERS[(int) roundf(intensity * CHARACTERS_NUMBER)]);
+}
 
 
 char mapIntensityToCharacter(float intensity) {
@@ -68,6 +77,7 @@ PyObject* convert_and_print(PyObject* self, PyObject* args)
 PyMethodDef module_methods[] = 
 {
     {"convert_and_print", convert_and_print, METH_VARARGS, "Method description"},
+    {"map_intensity_to_character", map_intensity_to_character, METH_VARARGS, "Method description"},
     {NULL} // this struct signals the end of the array
 };
 

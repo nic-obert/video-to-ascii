@@ -1,57 +1,55 @@
 #!/usr/bin/env python3
 from typing import List, NewType, Tuple
 import cv2
-import ctypes
-
-import c_converter
+import numpy as np
 
 
-Pixel = NewType('Pixel', Tuple[int, int, int])
-Frame = NewType('Frame', Tuple[List, List, Pixel])
+Frame = NewType('Frame', Tuple[List, List, Tuple[int, int, int]])
 
-CHARACTERS = (' ', '.', '°', '*', 'o', 'O', '#', '@')
+CHARACTERS = np.array([' ', '.', '°', '*', 'o', 'O', '#', '@'])
+
+
 MAX_CHANNEL_INTENSITY = 255
 MAX_CHANNEL_VALUES = MAX_CHANNEL_INTENSITY * 3 # 3 is the number of channels of a Pixel
 
 
-def map_intensity_to_character(intensity: float) -> CHARACTERS:
-    return CHARACTERS[round(intensity * len(CHARACTERS) - 1)]
-
-
-def get_pixel_intensity(pixel: Pixel) -> float:
-    return sum(pixel) / MAX_CHANNEL_VALUES
-
-
-def print_frame(frame: Frame, width: int, height: int) -> None:
+def convert_frame_optimized(frame: Frame, width: int, height: int) -> str:
     string = ''
     for y in range(height):
         for x in range(width):
-            pixel = Pixel((frame[y,x,0], frame[y,x,1], frame[y,x,2]))
-            intensity = get_pixel_intensity(pixel)
-            character = map_intensity_to_character(intensity)
-            string += character
+            string += CHARACTERS[round(np.sum(frame[y,x]) / 95.625 - 1)]
         string += '\n'
-    print(string)
+    return string
 
 
 cap = cv2.VideoCapture('video.mp4')
 
-print(cap.get(5))
-print(cap.get(cv2.CAP_PROP_FRAME_WIDTH))
+print(F'Frame rate: {cap.get(5)}')
+print(f'Size: {cap.get(cv2.CAP_PROP_FRAME_WIDTH)}, {cap.get(cv2.CAP_PROP_FRAME_HEIGHT)}')
+frame_count = cap.get(cv2.CAP_PROP_FRAME_COUNT)
 
+frames: List[str] = []
+
+counter = 0
 while cap.isOpened():
     ret, frame = cap.read()
     if not ret:
         break
 
-    height, width, channels = frame.shape
+    counter += 1
+    print(f'\r{counter}/{frame_count} frames converted', end='')
 
-    pointer = ctypes.c_void_p(frame.ctypes.data)
-    c_converter.convert_and_print(pointer, width, height)
-    #print('\033[H\033[J', end='')
-    #print_frame(frame, width, height)
+    height, width, channels = frame.shape
+    
+    frames.append(convert_frame_optimized(frame, width, height))
     
 
 cap.release()
-cv2.destroyAllWindows()
+
+input('Press Enter to show video...')
+
+for frame in frames:
+    # clear screen
+    print('\033[H\033[J', end='')
+    print(frame)
 
