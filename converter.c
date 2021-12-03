@@ -4,7 +4,7 @@
 
 
 #define CHARACTERS_NUMBER 8
-const char* CHARACTERS[CHARACTERS_NUMBER] = {" ", ".", "-", "*", "o", "O", "#", "@"};
+const char CHARACTERS[CHARACTERS_NUMBER] = {' ', '.', '-', '*', 'o', 'O', '#', '@'};
 
 const unsigned char MAX_CHANNEL_INTENSITY = 255;
 const unsigned short MAX_CHANNEL_VALUES = MAX_CHANNEL_INTENSITY * 3; // 3 is the number of channels of a Pixel
@@ -15,69 +15,71 @@ typedef unsigned char* Pixel;
 typedef Pixel* Frame;
     
 
-PyObject* map_intensity_to_character(PyObject* self, PyObject* args)
-{
-    float intensity;
-    if (!PyArg_ParseTuple(args, "f", &intensity))
-        return NULL;
-
-    return Py_BuildValue("s", CHARACTERS[(int) roundf(intensity * CHARACTERS_NUMBER)]);
-}
-
-
 char mapIntensityToCharacter(float intensity) {
     return CHARACTERS[(int) roundf(intensity * CHARACTERS_NUMBER - 1)];
 }
 
 
 float getPixelIntensity(Pixel pixel) {
-    unsigned short intensity = 0;
-    intensity += pixel[0] + pixel[1] + pixel[2];
-    return intensity / MAX_CHANNEL_VALUES;
+    return (pixel[0] + pixel[1] + pixel[2]) / MAX_CHANNEL_VALUES;
 }
 
 
-void printFrame(Frame frame, unsigned short width, unsigned short height) {
-    printf("printFrame() frame=%d width=%d height=%d\n", frame, width, height);
-    char string[height * width + height + 1];
-    for (unsigned short y = 0; y < height; y++) {
-        unsigned int basePosition = y * width;
-        printf("%d: %d", y, basePosition);
-        fflush(stdout);
-        for (unsigned short x = 0; x < width; x++) {
-            printf("getting frame\n");
-            fflush(stdout);
-            Pixel pixel = (Pixel) frame[basePosition + x];
-            float intensity = getPixelIntensity(pixel);
-            char character = mapIntensityToCharacter(intensity);
-            //string[basePosition + x] = character;
-            //string[basePosition + x + 1] = '\0';
-            printf("%s %f %c", string, intensity, character);
-        }
-        string[basePosition + width] = '\n';
-    }
-    string[height * width + height] = '\0';
-    printf("%s", string);
-}
-
-PyObject* convert_and_print(PyObject* self, PyObject* args)
+PyObject* fast_print(PyObject* self, PyObject* args) 
 {
-    Frame frame;
-    unsigned short width;
-    unsigned short height;
-    PyArg_ParseTuple(args, "nHH", &frame, &width, &height);
+    const char* frame;
 
-    //printf("\033[H\033[J");
-    printFrame((Frame) frame, width, height);
+    PyArg_ParseTuple(args, "s", &frame);
+
+    // Clear screen
+    printf("\033[H\033[J");
+    printf("%s", frame);
+    fflush(stdout);
 
     return Py_None;
 }
 
 
+PyObject* fast_convert_frame(PyObject* self, PyObject* args)
+{
+    PyBytesObject* frame;
+    unsigned short width;
+    unsigned short height;
+    
+    if (!PyArg_ParseTuple(args, "SHH", &frame, &width, &height)) {
+        return NULL;
+    }
+
+    Py_buffer pyBuffer;
+    if (!PyObject_GetBuffer((PyObject*) frame, &pyBuffer, PyBUF_SIMPLE)) {
+        printf("Error getting buffer from frame\n");
+        return NULL;
+    }
+
+    unsigned char* buffer = pyBuffer.buf;
+    char string[height * width + height + 1];
+
+    for (unsigned short y = 0; y < height; y++) {
+        unsigned int basePosition = y * width;
+        for (unsigned short x = 0; x < width; x++) {
+            unsigned int position = basePosition + x;
+            float intensity = (float) (buffer[position] + buffer[position + 1] + buffer[position + 2]) / MAX_CHANNEL_VALUES;
+            char character = CHARACTERS[(int) roundf(intensity * CHARACTERS_NUMBER - 1)];
+            string[basePosition + x] = character;   
+        }
+        string[basePosition + width] = '\n';
+    }
+    string[height * width + height] = '\0';
+
+    // return a Python string
+    return Py_BuildValue("s", string);
+}
+
+
 PyMethodDef module_methods[] = 
 {
-    {"convert_and_print", convert_and_print, METH_VARARGS, "Method description"},
-    {"map_intensity_to_character", map_intensity_to_character, METH_VARARGS, "Method description"},
+    {"fast_print", fast_print, METH_VARARGS, "Method description"},
+    {"fast_convert_frame", fast_convert_frame, METH_VARARGS, "Method description"},
     {NULL} // this struct signals the end of the array
 };
 

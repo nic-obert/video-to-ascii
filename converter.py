@@ -3,6 +3,7 @@ from typing import List, NewType, Tuple
 import cv2
 import numpy as np
 
+from c_converter import fast_print, fast_convert_frame
 
 Frame = NewType('Frame', Tuple[List, List, Tuple[int, int, int]])
 
@@ -22,34 +23,52 @@ def convert_frame_optimized(frame: Frame, width: int, height: int) -> str:
     return string
 
 
-cap = cv2.VideoCapture('video.mp4')
 
-print(F'Frame rate: {cap.get(5)}')
-print(f'Size: {cap.get(cv2.CAP_PROP_FRAME_WIDTH)}, {cap.get(cv2.CAP_PROP_FRAME_HEIGHT)}')
-frame_count = cap.get(cv2.CAP_PROP_FRAME_COUNT)
+def convert_video(file: str) -> List[str]:
+    print(f'Loading video file {file}')
+    cap = cv2.VideoCapture(file)
 
-frames: List[str] = []
+    width = int(cap.get(cv2.CAP_PROP_FRAME_WIDTH))
+    height = int(cap.get(cv2.CAP_PROP_FRAME_HEIGHT))
+    frame_count = cap.get(cv2.CAP_PROP_FRAME_COUNT)
 
-counter = 0
-while cap.isOpened():
-    ret, frame = cap.read()
-    if not ret:
-        break
+    print(F'Frame rate: {cap.get(5)}')
+    print(f'Size: {width}, {height}')
 
-    counter += 1
-    print(f'\r{counter}/{frame_count} frames converted', end='')
+    frames: List[str] = []
 
-    height, width, channels = frame.shape
+    counter = 0
+    while cap.isOpened():
+        ret, frame = cap.read()
+        if not ret:
+            break
+
+        counter += 1
+        print(f'\r{counter}/{frame_count} frames converted', end='')
+        
+        frames.append(fast_convert_frame(bytes(frame), width, height))
+        #frames.append(convert_frame_optimized(frame, width, height))
     
-    frames.append(convert_frame_optimized(frame, width, height))
+    cap.release()
+
+    return frames
     
 
-cap.release()
+def print_frames(frames: List[str]) -> None:
+    for frame in frames:
+        fast_print(frame)
 
-input('Press Enter to show video...')
 
-for frame in frames:
-    # clear screen
-    print('\033[H\033[J', end='')
-    print(frame)
+def main() -> None:
+    file = 'video.mp4'    
+
+    frames = convert_video(file)
+
+    input('\nPress Enter to show video...')
+
+    print_frames(frames)
+
+
+if __name__ == '__main__':
+    main()
 
