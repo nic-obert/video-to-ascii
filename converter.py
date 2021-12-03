@@ -2,6 +2,7 @@
 from typing import List, NewType, Tuple
 import cv2
 import numpy as np
+import time
 
 from c_converter import fast_print, fast_convert_frame
 
@@ -31,8 +32,9 @@ def convert_video(file: str) -> List[str]:
     width = int(cap.get(cv2.CAP_PROP_FRAME_WIDTH))
     height = int(cap.get(cv2.CAP_PROP_FRAME_HEIGHT))
     frame_count = cap.get(cv2.CAP_PROP_FRAME_COUNT)
+    frame_rate = cap.get(5)
 
-    print(F'Frame rate: {cap.get(5)}')
+    print(F'Frame rate: {frame_rate}')
     print(f'Size: {width}, {height}')
 
     frames: List[str] = []
@@ -51,22 +53,30 @@ def convert_video(file: str) -> List[str]:
     
     cap.release()
 
-    return frames
+    return frames, frame_rate
     
 
-def print_frames(frames: List[str]) -> None:
+def print_frames(frames: List[str], frame_rate: float) -> None:
+
+    base_delay = 1 / frame_rate
+
     for frame in frames:
+        time.sleep(base_delay)
         fast_print(frame)
 
 
 def main() -> None:
     file = 'video.mp4'    
 
-    frames = convert_video(file)
+    frames, frame_rate = convert_video(file)
 
     input('\nPress Enter to show video...')
 
-    print_frames(frames)
+    #print_frames(frames, frame_rate)
+
+    print("len frames", len(frames))
+    for frame in frames:
+        print(len(frame))
 
 
 if __name__ == '__main__':

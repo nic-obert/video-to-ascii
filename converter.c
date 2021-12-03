@@ -33,6 +33,7 @@ PyObject* fast_print(PyObject* self, PyObject* args)
 
     // Clear screen
     printf("\033[H\033[J");
+    fflush(stdout);
     printf("%s", frame);
     fflush(stdout);
 
@@ -51,7 +52,7 @@ PyObject* fast_convert_frame(PyObject* self, PyObject* args)
     }
 
     Py_buffer pyBuffer;
-    if (!PyObject_GetBuffer((PyObject*) frame, &pyBuffer, PyBUF_SIMPLE)) {
+    if (PyObject_GetBuffer((PyObject*) frame, &pyBuffer, PyBUF_READ) < 0) {
         printf("Error getting buffer from frame\n");
         return NULL;
     }
@@ -60,16 +61,19 @@ PyObject* fast_convert_frame(PyObject* self, PyObject* args)
     char string[height * width + height + 1];
 
     for (unsigned short y = 0; y < height; y++) {
-        unsigned int basePosition = y * width;
-        for (unsigned short x = 0; x < width; x++) {
-            unsigned int position = basePosition + x;
+        unsigned int yBufferPosition = y * width * 3;
+        unsigned int yStringPosition = y * width;
+        for (unsigned short xBuffer = 0, xString = 0; xBuffer < width*3; xBuffer+=3, xString++) {
+            unsigned int position = yBufferPosition + xBuffer;
             float intensity = (float) (buffer[position] + buffer[position + 1] + buffer[position + 2]) / MAX_CHANNEL_VALUES;
             char character = CHARACTERS[(int) roundf(intensity * CHARACTERS_NUMBER - 1)];
-            string[basePosition + x] = character;   
+            string[yStringPosition + xString] = character;   
         }
-        string[basePosition + width] = '\n';
+        string[yStringPosition + width] = '\n';
     }
     string[height * width + height] = '\0';
+
+    PyBuffer_Release(&pyBuffer);
 
     // return a Python string
     return Py_BuildValue("s", string);
