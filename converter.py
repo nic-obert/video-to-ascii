@@ -1,10 +1,12 @@
 #!/usr/bin/env python3
-from typing import List, NewType, Tuple
 import cv2
-import numpy as np
 import time
+from sys import argv
+import numpy as np
+from typing import List, NewType, Tuple
 
 from c_converter import fast_print, fast_convert_frame
+
 
 Frame = NewType('Frame', Tuple[List, List, Tuple[int, int, int]])
 
@@ -61,22 +63,19 @@ def print_frames(frames: List[str], frame_rate: float) -> None:
     base_delay = 1 / frame_rate
 
     for frame in frames:
-        time.sleep(base_delay)
+        start = time.time()
         fast_print(frame)
+        time.sleep(abs(base_delay - time.time() + start))
 
 
 def main() -> None:
-    file = 'video.mp4'    
+    file = argv[1]    
 
     frames, frame_rate = convert_video(file)
 
     input('\nPress Enter to show video...')
 
-    #print_frames(frames, frame_rate)
-
-    print("len frames", len(frames))
-    for frame in frames:
-        print(len(frame))
+    print_frames(frames, frame_rate)
 
 
 if __name__ == '__main__':

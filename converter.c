@@ -16,7 +16,7 @@ typedef Pixel* Frame;
     
 
 char mapIntensityToCharacter(float intensity) {
-    return CHARACTERS[(int) roundf(intensity * CHARACTERS_NUMBER - 1)];
+    return CHARACTERS[(int) roundf(intensity * (CHARACTERS_NUMBER - 1))];
 }
 
 
@@ -33,9 +33,7 @@ PyObject* fast_print(PyObject* self, PyObject* args)
 
     // Clear screen
     printf("\033[H\033[J");
-    fflush(stdout);
     printf("%s", frame);
-    fflush(stdout);
 
     return Py_None;
 }
@@ -44,10 +42,10 @@ PyObject* fast_print(PyObject* self, PyObject* args)
 PyObject* fast_convert_frame(PyObject* self, PyObject* args)
 {
     PyBytesObject* frame;
-    unsigned short width;
-    unsigned short height;
+    unsigned short frameWidth;
+    unsigned short frameHeight;
     
-    if (!PyArg_ParseTuple(args, "SHH", &frame, &width, &height)) {
+    if (!PyArg_ParseTuple(args, "SHH", &frame, &frameWidth, &frameHeight)) {
         return NULL;
     }
 
@@ -57,21 +55,24 @@ PyObject* fast_convert_frame(PyObject* self, PyObject* args)
         return NULL;
     }
 
-    unsigned char* buffer = pyBuffer.buf;
-    char string[height * width + height + 1];
+    unsigned const char* buffer = pyBuffer.buf;
+    const unsigned short stringWidth = frameWidth + 1;
+    const unsigned short bufferWidth = frameWidth * 3;
 
-    for (unsigned short y = 0; y < height; y++) {
-        unsigned int yBufferPosition = y * width * 3;
-        unsigned int yStringPosition = y * width;
-        for (unsigned short xBuffer = 0, xString = 0; xBuffer < width*3; xBuffer+=3, xString++) {
-            unsigned int position = yBufferPosition + xBuffer;
-            float intensity = (float) (buffer[position] + buffer[position + 1] + buffer[position + 2]) / MAX_CHANNEL_VALUES;
-            char character = CHARACTERS[(int) roundf(intensity * CHARACTERS_NUMBER - 1)];
-            string[yStringPosition + xString] = character;   
+    char string[frameHeight * stringWidth + 1];
+
+    for (unsigned short y = 0; y < frameHeight; y++) {
+        unsigned int yBufferPosition = y * bufferWidth;
+        unsigned int yStringPosition = y * stringWidth;
+        for (unsigned short xBuffer = 0, xString = 0; xString < frameWidth; xBuffer+=3, xString++) {
+            unsigned int bufferPosition = yBufferPosition + xBuffer;
+            float intensity = (float) (buffer[bufferPosition] + buffer[bufferPosition + 1] + buffer[bufferPosition + 2]) / MAX_CHANNEL_VALUES;
+            char character = CHARACTERS[(int) roundf(intensity * (CHARACTERS_NUMBER - 1))];
+            string[yStringPosition + xString] = character;
         }
-        string[yStringPosition + width] = '\n';
+        string[yStringPosition + frameWidth] = '\n';
     }
-    string[height * width + height] = '\0';
+    string[frameHeight * stringWidth] = '\0';
 
     PyBuffer_Release(&pyBuffer);
 
