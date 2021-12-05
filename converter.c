@@ -35,7 +35,7 @@ PyObject* fast_print(PyObject* self, PyObject* args)
     printf("\033[H\033[J");
     printf("%s", frame);
 
-    return NULL;
+    return Py_None;
 }
 
 
