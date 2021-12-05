@@ -1,11 +1,14 @@
 #!/usr/bin/env python3
+from io import BufferedWriter
 import cv2
-import time
+import os
+import pathlib
+import math
 from sys import argv
 import numpy as np
 from typing import List, NewType, Tuple
 
-from c_converter import fast_print, fast_convert_frame
+from c_converter import fast_convert_frame
 
 
 Frame = NewType('Frame', Tuple[List, List, Tuple[int, int, int]])
@@ -26,56 +29,88 @@ def convert_frame_optimized(frame: Frame, width: int, height: int) -> str:
     return string
 
 
-
-def convert_video(file: str) -> List[str]:
-    print(f'Loading video file {file}')
-    cap = cv2.VideoCapture(file)
-
-    width = int(cap.get(cv2.CAP_PROP_FRAME_WIDTH))
-    height = int(cap.get(cv2.CAP_PROP_FRAME_HEIGHT))
-    frame_count = cap.get(cv2.CAP_PROP_FRAME_COUNT)
-    frame_rate = cap.get(5)
-
-    print(F'Frame rate: {frame_rate}')
-    print(f'Size: {width}, {height}')
-
-    frames: List[str] = []
-
-    counter = 0
-    while cap.isOpened():
-        ret, frame = cap.read()
-        if not ret:
-            break
-
-        counter += 1
-        print(f'\r{counter}/{frame_count} frames converted', end='')
-        
-        frames.append(fast_convert_frame(bytes(frame), width, height))
-        #frames.append(convert_frame_optimized(frame, width, height))
+def normalize_frame_rate(frame_rate: float) -> bytes:
+    """
+    Normalizes the frame rate to an unsigned byte value between 1 and 255.
+    """
+    frame_rate = math.ceil(frame_rate)
+    if frame_rate > 255:
+        frame_rate = 255
+    elif frame_rate < 1:
+        frame_rate = 1
     
-    cap.release()
+    return bytes([frame_rate])
 
-    return frames, frame_rate
+
+def write_file_header(output_file: BufferedWriter, width: int, height: int, frame_rate: float, frame_count: int) -> None:
+    """
+    Writes the header of the file.
+    The header takes up the first 13 bytes of the file.
+    """
+    output_file.write(
+        int.to_bytes(width, 2, 'big') +
+        int.to_bytes(height, 2, 'big') +
+        normalize_frame_rate(frame_rate) + 
+        int.to_bytes(frame_count, 8, 'big')
+    )
+
+
+def convert_video(file_name: pathlib.Path, output_name: pathlib.Path) -> bool:
     
+    print(f'Loading video file {file_name}')
+    cap = cv2.VideoCapture(file_name.name)
 
-def print_frames(frames: List[str], frame_rate: float) -> None:
+    if not cap.isOpened():
+        print('Could not open video file')
+        return False
 
-    base_delay = 1 / frame_rate
+    try:
+        width = int(cap.get(cv2.CAP_PROP_FRAME_WIDTH))
+        height = int(cap.get(cv2.CAP_PROP_FRAME_HEIGHT))
+        frame_count = int(cap.get(cv2.CAP_PROP_FRAME_COUNT))
+        frame_rate = float(cap.get(5))
 
-    for frame in frames:
-        start = time.time()
-        fast_print(frame)
-        time.sleep(abs(base_delay - time.time() + start))
+        print(F'Frame rate: {frame_rate}')
+        print(f'Size: {width}, {height}')
+        print(f'Frame count: {frame_count}')
+
+        with open(output_name.name, 'wb') as output_file:
+
+            write_file_header(output_file, width, height, frame_rate, frame_count)
+
+            counter = 0
+            while cap.isOpened():
+                ret, frame = cap.read()
+                if not ret:
+                    break
+
+                counter += 1
+                print(f'\r{counter}/{frame_count} frames converted', end='')
+                
+                output_file.write(fast_convert_frame(bytes(frame), width, height).encode('ascii'))
+    
+    except Exception as e:
+        print(e)
+        return False
+
+    finally:
+        cap.release()
+
+    return True
 
 
 def main() -> None:
-    file = argv[1]    
+    file_name = pathlib.Path(argv[1])
+    output_name = pathlib.Path(file_name.stem + '.ascii')
 
-    frames, frame_rate = convert_video(file)
+    success = convert_video(file_name, output_name)
 
-    input('\nPress Enter to show video...')
-
-    print_frames(frames, frame_rate)
+    if success:
+        print(f'\nConverted file saved as "{output_name}"')
+    else:
+        print('\nConversion failed')
+        if os.path.exists(output_name.name):
+            os.remove(output_name.name)
 
 
 if __name__ == '__main__':
