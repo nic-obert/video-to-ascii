@@ -4,6 +4,7 @@ import cv2
 import os
 import pathlib
 import math
+import time
 from sys import argv
 import numpy as np
 from typing import List, NewType, Tuple
@@ -103,10 +104,13 @@ def main() -> None:
     file_name = pathlib.Path(argv[1])
     output_name = pathlib.Path(file_name.stem + '.ascii')
 
-    success = convert_video(file_name, output_name)
+    start = time.time()
 
+    success = convert_video(file_name, output_name)
+    
     if success:
-        print(f'\nConverted file saved as "{output_name}"')
+        print(f'\nConversion successful.\nTime: {time.time() - start}')
+        print(f'\nOutput file saved as "{output_name}"')
     else:
         print('\nConversion failed')
         if os.path.exists(output_name.name):

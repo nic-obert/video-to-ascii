@@ -13,7 +13,13 @@ class FileInfo:
         self.height = height
         self.frame_rate = frame_rate
         self.frame_count = frame_count
-        self.frame_buffer_size = (self.width + 1) * self.height
+        self.frame_buffer_size = (self.width * 2) * self.height
+    
+    def __str__(self):
+        return f'FileInfo: {self.width}x{self.height} | {self.frame_rate} fps | {self.frame_count} frames | {self.frame_buffer_size} bytes'
+
+    def __repr__(self) -> str:
+        return self.__str__()
 
 
 def read_header(file: BufferedReader) -> FileInfo:
@@ -31,14 +37,11 @@ def main() -> None:
     with open(input_file, 'rb') as file:
         file_info = read_header(file)
 
-        base_delay = 1 / file_info.frame_rate
+        # Time every frame should take to be printed in nanoseconds.
+        base_delay = int(1 / file_info.frame_rate * 1e9)
 
         for _ in range(file_info.frame_count):
-            start = time.time()
-            frame = file.read(file_info.frame_buffer_size).decode('ascii')
-            fast_print(frame)
-            end = time.time()
-            time.sleep(abs(base_delay - (end - start)))
+            fast_print(file.read(file_info.frame_buffer_size).decode('ascii'), base_delay)
 
 
 if __name__ == '__main__':
