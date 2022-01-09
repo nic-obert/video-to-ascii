@@ -1,5 +1,4 @@
 #!/usr/bin/env python3
-import time
 from io import BufferedReader
 from sys import argv
 
@@ -7,7 +6,7 @@ from c_converter import fast_print
 
 
 class FileInfo:
-    """A class that holds information about the file."""
+    """A class that holds metadata about the file."""
     def __init__(self, width: int, height: int, frame_rate: int, frame_count: int):
         self.width = width
         self.height = height
@@ -23,27 +22,33 @@ class FileInfo:
 
 
 def read_header(file: BufferedReader) -> FileInfo:
-    """Reads the header of the file and prints it to the console."""
-    width = int.from_bytes(file.read(2), 'big')
-    height = int.from_bytes(file.read(2), 'big')
-    frame_rate = int.from_bytes(file.read(1), 'big')
-    frame_count = int.from_bytes(file.read(8), 'big')
+    """Reads the header of the file and returns it in a friendly format."""
+    width = int.from_bytes(file.read(2), 'big')         # First 2 bytes: width
+    height = int.from_bytes(file.read(2), 'big')        # Second 2 bytes: height
+    frame_rate = int.from_bytes(file.read(1), 'big')    # Third byte: frame rate
+    frame_count = int.from_bytes(file.read(8), 'big')   # Last 8 bytes: frame count
     return FileInfo(width, height, frame_rate, frame_count)
 
 
 def main() -> None:
+    # Get the file name from the command line arguments.
     input_file = argv[1]
 
+    # Open the ASCII art file.
     with open(input_file, 'rb') as file:
+        # Read the header to extract the metadata.
         file_info = read_header(file)
 
         # Time every frame should take to be printed in nanoseconds.
-        base_delay = int(1 / file_info.frame_rate * 1e9)
+        frame_duration = int(1 / file_info.frame_rate * 1e9)
 
+        # Iterate over every frame in the file.
         for _ in range(file_info.frame_count):
-            fast_print(file.read(file_info.frame_buffer_size).decode('ascii'), base_delay)
+            # Read the frame and print it to the console.
+            fast_print(file.read(file_info.frame_buffer_size).decode('ascii'), frame_duration)
 
 
+# Python's kind-of main function.
 if __name__ == '__main__':
     main()
 
