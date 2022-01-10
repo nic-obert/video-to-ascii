@@ -16,9 +16,6 @@ const unsigned short MAX_CHANNEL_VALUES = MAX_CHANNEL_INTENSITY * 3; // 3 is the
 
 // Pixel is an array of bytes (unsigned char) representing the RGB values of a pixel
 typedef unsigned char* Pixel;
-
-// Frame is an array of pixels
-typedef Pixel* Frame;
     
 
 // Associates a pixel intensity to an ASCII character
@@ -29,7 +26,7 @@ char mapIntensityToCharacter(float intensity) {
 
 // Converts a pixel to a floating point intensity
 float getPixelIntensity(Pixel pixel) {
-    return (pixel[0] + pixel[1] + pixel[2]) / MAX_CHANNEL_VALUES;
+    return (float) (pixel[0] + pixel[1] + pixel[2]) / MAX_CHANNEL_VALUES;
 }
 
 
@@ -90,7 +87,9 @@ PyObject* fast_convert_frame(PyObject* self, PyObject* args)
     }
 
     const unsigned char* frameBuffer = pyBuffer.buf;
+    // Make space for the extra space after every ASCII character
     const unsigned short STRING_WIDTH = frameWidth * 2;
+    // Each pixel is composed of 3 channels
     const unsigned short BUFFER_WIDTH = frameWidth * 3;
 
     // Create the string to store the frame that will be returned
@@ -105,12 +104,10 @@ PyObject* fast_convert_frame(PyObject* self, PyObject* args)
             const unsigned int framePosition = y * BUFFER_WIDTH + xBuffer;
             
             // Calculate the intensity of the pixel by its RGB values
-            const float intensity = 
-                (float) (frameBuffer[framePosition] + frameBuffer[framePosition + 1] + frameBuffer[framePosition + 2])
-                / MAX_CHANNEL_VALUES;
+            const float intensity = getPixelIntensity((Pixel) &frameBuffer[framePosition]);
             
             // Convert the intensity to a character using the CHARAACTERS lookup table
-            const char character = CHARACTERS[(int) roundf(intensity * (CHARACTERS_NUMBER - 1))];
+            const char character = mapIntensityToCharacter(intensity);
             
             // Store the character in the string
             string[yString + xString] = character;
