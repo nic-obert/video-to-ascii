@@ -3,3 +3,7 @@ __pycache__
 *.pyc
 *.ascii
 *.mp4
+.vscode
+dist
+*.egg-info
+.venv
